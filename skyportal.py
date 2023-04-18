@@ -55,25 +55,34 @@ class skyportal(object):
             else:
                 return(True, r.text)
 
-    def get_objlist(self):
+    def get_objlist(self, limit=500):
 
-        data = {'numPerPage':500, 'group_ids':['1423']}
-        status, data = self.api('GET','sources', data=data)
-        if status:
+        outdata = Table([['X'*100],[0.],[0.],['X'*100],['X'*100]],
+            names=('name','ra','dec','group_id','group_names')).copy()[:0]
 
-            outdata = Table([['X'*100],[0.],[0.],['X'*100],['X'*100]],
-                names=('name','ra','dec','group_id','group_names')).copy()[:0]
+        n=limit+1
+        pageNumber=1
+        while n>=limit:
 
-            for source in data['sources']:
-                group_id=','.join([str(g['id']) for g in source['groups']])
-                group_name=','.join([str(g['name']) for g in source['groups']])
-                outdata.add_row([source['id'],source['ra'],source['dec'],
-                    group_id,group_name])
+            data = {'numPerPage':limit, 'group_ids':['1423'],
+                'pageNumber':pageNumber}
+            status, data = self.api('GET','sources', data=data)
 
-            return(outdata)
+            if status:
 
-        else:
-            return(None)
+                for source in data['sources']:
+                    group_id=','.join([str(g['id']) for g in source['groups']])
+                    group_name=','.join([str(g['name']) for g in source['groups']])
+                    outdata.add_row([source['id'],source['ra'],source['dec'],
+                        group_id,group_name])
+
+                n = len(data['sources'])
+                pageNumber = pageNumber+1
+
+            else:
+                return(outdata)
+
+        return(outdata)
 
     def get_instruments(self):
 
@@ -92,32 +101,24 @@ class skyportal(object):
         else:
             return(None)
 
-    def get_observations(self, inst_id, start_date, end_date):
+    def get_observations(self, inst_id, start_date, end_date, limit=100):
 
         t0 = Time(start_date)
         t1 = Time(end_date)
 
         followup_requests = []
-        if t1-t0 > 4*86400*u.s:
-            n_requests = int((t1-t0)/(4*86400*u.s))+1
-            for i in np.arange(n_requests):
-                tmin = t0 + TimeDelta(i*4*86400*u.s)
-                tmax = t0 + TimeDelta((i+1)*4*86400*u.s)
-
-                data = {'startDate': tmin.datetime.strftime('%Y-%m-%dT%H:%M:%S'),
-                        'endDate': tmax.datetime.strftime('%Y-%m-%dT%H:%M:%S'),}
-
-                status, outdata = self.api('GET', f'followup_request', data=data)
-                if status:
-                    followup_requests.extend(outdata['followup_requests'])
-
-        else:
-            data = {'startDate': t0.datetime.strftime('%Y-%m-%dT%H:%M:%S'),
-                    'endDate': t1.datetime.strftime('%Y-%m-%dT%H:%M:%S'),}
-
+        data = {'startDate': t0.datetime.strftime('%Y-%m-%dT%H:%M:%S'),
+                'endDate': t1.datetime.strftime('%Y-%m-%dT%H:%M:%S'),}
+        data['numPerPage']=limit
+        data['pageNumber']=1
+        n=100
+        followup_requests=[]
+        while n>=limit:
             status, outdata = self.api('GET', f'followup_request', data=data)
             if status:
                 followup_requests.extend(outdata['followup_requests'])
+                n=len(outdata['followup_requests'])
+                data['pageNumber']=data['pageNumber']+1
 
         return(followup_requests)
 

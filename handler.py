@@ -46,7 +46,7 @@ def main():
             print(f'Adding {obj_id}')
             fritz.add_new_source(obj_id, target['ra'], target['dec'])
 
-    data = fritz.get_observations(fritz.inst_id, now-cadence/2,now+cadence/2)
+    data = fritz.get_observations(fritz.inst_id, now-cadence,now)
 
     curr_observations = []
     for d in data:
