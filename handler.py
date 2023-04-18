@@ -1,15 +1,10 @@
-import urllib
 import os
-import time
 from astropy.time import Time,TimeDelta
 from astropy import units as u
-from astropy.table import Table
-from astropy.io import ascii
-from astropy.coordinates import SkyCoord
-import numpy as np
-import requests
 import sys
 import datetime
+
+# Package dependencies
 import util
 from skyportal import skyportal
 
@@ -23,10 +18,11 @@ def main():
     api_token = os.environ['FRITZ_TOKEN']
     target_url = os.environ['SEDMV2_TARGETS']
 
-    # Targets
+    # Targets - only observe bright sources and ignore SN Ia
     targets = util.download_targets(target_url)
     mask = (targets['type']!='SN Ia') & (targets['mag']<19.0)
 
+    # Allocation and group for SEDMv2
     allocation_id = '1026'
     group_id = '1423'
 
@@ -34,7 +30,6 @@ def main():
     cadence = TimeDelta(4*86400*u.s)
 
     fritz = skyportal(os.environ['FRITZ_TOKEN'], 'sedmv2')
-    print(fritz.targets)
 
     targets = targets[mask]
     for target in targets:
@@ -71,7 +66,7 @@ def main():
 
             if not needs_observation: continue
 
-            exptime = util.get_exptime(t['mag'])
+            exptime = util.get_exptime(t['mag'], filt)
 
             status, obsdata = fritz.post_followup_request(allocation_id, obj_id,
                 filt, exptime, now, now+TimeDelta(86400*u.s),

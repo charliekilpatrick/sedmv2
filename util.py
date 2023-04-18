@@ -22,7 +22,22 @@ def blank_target_table(length=0):
         tab = Table(data, names=target_table_names)
         return(tab)
 
-def get_exptime(mag, zeropoint=17.0, min_exp=30., s_n=10.0):
+def get_exptime(mag, filt, min_exp=30., s_n=10.0):
+
+    zeropoints = {
+        # Zero point estimates for detection of a source at 3-sigma in 1s
+        # TODO: Update these once we have actual SEDMv2 data
+        'g': 17.0,
+        'r': 17.0,
+        'i': 17.0,
+        'z': 17.0,
+    }
+
+    if filt not in zeropoints.keys():
+        raise Exception(f'ERROR: unrecognized filter {filt}')
+
+    zeropoint = zeropoints[filt]
+
     term1 = (s_n / 3.)**2
     term2 = 0.4*(mag - zeropoint)
     exp_time = term1*10**term2
