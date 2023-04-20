@@ -134,6 +134,22 @@ class skyportal(object):
         else:
             return(True)
 
+    def delete_followup_request(self, request):
+
+        if request['status']!='submitted':
+            return(True)
+
+        idnum = request['id']
+        print(request['id'], request['requester']['username'])
+        endpoint = f'followup_request/watch/{idnum}'
+        status, data = self.api('DELETE', endpoint)
+
+        if status:
+            return(True)
+        else:
+            return(False)
+
+
     def add_new_source(self, obj_id, ra, dec, group_id='1423'):
 
         data = {

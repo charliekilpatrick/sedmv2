@@ -6,11 +6,21 @@ from astropy.io import ascii
 from astropy.time import Time
 from astropy.table import unique, Column
 import csv, requests, sys, numpy as np
+import os
 
 target_table_names = ('name', 'ra', 'dec', 'priority', 'date', 'mag', 'type')
 target_table_row   = [['X' * 40], [0.], [0.], [0.0],
     [Time('2019-01-01T00:00:00')], [0.0], ['X' * 40]]
 max_length = 10000
+
+def parse_token(args):
+
+    if args.token:
+        return(args.token)
+    elif args.token_variable and args.token_variable in os.environ.keys():
+        return(os.environ[args.token_variable])
+    else:
+        raise Exception('ERROR: could not get API token')
 
 # Get a blank target table
 def blank_target_table(length=0):
@@ -33,6 +43,33 @@ def get_exptime(mag, filt, min_exp=30., s_n=10.0):
         'z': 17.0,
     }
 
+    if filt=='IFU':
+        if mag<11.0:
+            return(None)
+        elif mag<13.0:
+            return(60.0)
+        elif mag<14.0:
+            return(120.0)
+        elif mag<15.0:
+            return(240.0)
+        elif mag<16.0:
+            return(450.0)
+        elif mag<17.0:
+            return(900.0)
+        elif mag<17.5:
+            return(1200.0)
+        if mag<18.0:
+            return(1500.0)
+        elif mag<18.5:
+            return(1800.0)
+        elif mag<19.0:
+            return(2100.0)
+        elif mag<19.5:
+            return(2400.0)
+        else:
+            return(None)
+
+
     if filt not in zeropoints.keys():
         raise Exception(f'ERROR: unrecognized filter {filt}')
 
@@ -48,6 +85,21 @@ def get_exptime(mag, filt, min_exp=30., s_n=10.0):
     exp_time = int(np.round(exp_time))
 
     return exp_time
+
+def parse_targets(args):
+
+    table = None
+    if args.target_file and os.path.exists(args.target_file):
+        table = Table.read(args.target_file)
+    elif args.target_url:
+        table = download_targets(args.target_url)
+    elif args.target_variable and args.target_variable in os.environ.keys():
+        url = os.environ[args.target_variable]
+        table = download_targets(url)
+    else:
+        raise Exception('ERROR: no method for input targets was provided')
+
+    return(table)
 
 def download_targets(url):
 
